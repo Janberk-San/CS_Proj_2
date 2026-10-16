@@ -39,7 +39,7 @@ Classes and method signatures: nothing. All seven classes exist with the names i
 What we added that the spec did not list
 Named constants instead of magic numbers: Memory.MIN_IMPORTANCE/MAX_IMPORTANCE (1 and 5), Journal.CLOSE_MATCH_DISTANCE (2), and RewindApp's menu constants (ADD_FRIEND = 1 … QUIT = 0) and NAME_MAX.
 
-Where validation lives: as specified, with one wrinkle. User mistakes are caught in InputReader and RewindApp and answered with a re-prompt; programmer mistakes are caught in Memory, Friend and LinkedChain and answered with IllegalArgumentException. 
+Where validation lives: User mistakes are caught in InputReader and RewindApp and answered with a re-prompt; programmer mistakes are caught in Memory, Friend and LinkedChain and answered with IllegalArgumentException. 
 Test cases: the plan was followed and then extended. Every row in the spec's test tables became at least one test method. On top of that we added cases the tables did not have. Total: 114 tests, all passing.
 What changed in the LinkedChain?
 Nothing. The application calls six of its public methods (add, remove(T), size, isEmpty, toArray(T[]), and remove(T) via Friend.removeMemory/Journal.removeFriend) 
