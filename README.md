@@ -40,8 +40,9 @@ What we added that the spec did not list
 Named constants instead of magic numbers: Memory.MIN_IMPORTANCE/MAX_IMPORTANCE (1 and 5), Journal.CLOSE_MATCH_DISTANCE (2), and RewindApp's menu constants (ADD_FRIEND = 1 … QUIT = 0) and NAME_MAX.
 
 Where validation lives: User mistakes are caught in InputReader and RewindApp and answered with a re-prompt; programmer mistakes are caught in Memory, Friend and LinkedChain and answered with IllegalArgumentException. 
+
 Test cases: the plan was followed and then extended. Every row in the spec's test tables became at least one test method. On top of that we added cases the tables did not have. Total: 114 tests, all passing.
-What changed in the LinkedChain?
+What changed in the LinkedChain:
 Nothing. The application calls six of its public methods (add, remove(T), size, isEmpty, toArray(T[]), and remove(T) via Friend.removeMemory/Journal.removeFriend) 
 What happened to your unknowns?
 Unknown from the scope
@@ -60,10 +61,11 @@ File I/O (stretch)
 Still open
 
 What doesn't work yet?
-No persistence. Data lives only while the program runs, as the scope allows for the MVP. The biggest thing we would like to add going forward is native data storage.
+Data lives only while the program runs. The biggest thing we would like to add going forward is native data storage.
 
 Which stretch goals will you attempt
 Save and load to a file. We don't know how we would start this in a java program quite yet but we will learn
+
 Dropping:
 Friendship trend (month-by-month bar chart). Mostly formatting work; little new data-structure logic.
 Tags and search across all friends. Would add the third element type (LinkedChain<String>), 
