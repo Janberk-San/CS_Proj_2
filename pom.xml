@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>edu.cs2114</groupId>
+  <artifactId>rewind</artifactId>
+  <version>1.0.0</version>
+  <properties>
+    <maven.compiler.release>8</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  </properties>
+  <dependencies>
+    <dependency>
+      <groupId>junit</groupId><artifactId>junit</artifactId><version>4.13.2</version><scope>test</scope>
+    </dependency>
+  </dependencies>
+  <build>
+    <!-- Preserve the existing Eclipse/course source layout. -->
+    <sourceDirectory>src</sourceDirectory>
+    <testSourceDirectory>src</testSourceDirectory>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId><artifactId>maven-compiler-plugin</artifactId><version>3.13.0</version>
+        <configuration>
+          <showWarnings>true</showWarnings>
+          <compilerArgs><arg>-Xlint:all</arg><arg>-Werror</arg></compilerArgs>
+          <testIncludes><testInclude>**/*Test.java</testInclude></testIncludes>
+        </configuration>
+        <executions><execution><id>default-compile</id><configuration>
+          <excludes><exclude>**/*Test.java</exclude></excludes>
+        </configuration></execution></executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId><artifactId>maven-surefire-plugin</artifactId><version>3.2.5</version>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId><artifactId>maven-jar-plugin</artifactId><version>3.4.2</version>
+        <configuration><archive><manifest><mainClass>RewindApp</mainClass></manifest></archive></configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId><artifactId>maven-checkstyle-plugin</artifactId><version>3.6.0</version>
+        <configuration>
+          <configLocation>config/checkstyle.xml</configLocation>
+          <includeTestSourceDirectory>true</includeTestSourceDirectory>
+          <consoleOutput>true</consoleOutput>
+        </configuration>
+        <executions><execution><id>style</id><phase>verify</phase><goals><goal>check</goal></goals></execution></executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>

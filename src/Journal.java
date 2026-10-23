@@ -49,6 +49,26 @@ public class Journal {
     }
 
     /**
+     * Combines two records for the same person. All source memories are
+     * copied to the target (equal memories remain separate entries), and
+     * the source is removed from this journal. Both must be members.
+     *
+     * @param source record to remove
+     * @param target record to keep
+     * @throws IllegalArgumentException for null, absent, or identical records
+     */
+    public void merge(Friend source, Friend target) {
+        if (source == null || target == null || source == target
+            || !friends.contains(source) || !friends.contains(target)) {
+            throw new IllegalArgumentException("Choose two different friends in the journal");
+        }
+        for (Memory memory : source.getMemoriesNewestFirst()) {
+            target.addMemory(memory);
+        }
+        friends.remove(source);
+    }
+
+    /**
      * @return how many friends are in the journal
      */
     public int friendCount() {

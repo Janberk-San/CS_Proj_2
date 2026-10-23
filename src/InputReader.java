@@ -101,6 +101,42 @@ public class InputReader {
     }
 
     /**
+     * Reads a menu choice, showing context again after each invalid answer.
+     *
+     * @param prompt question to display
+     * @param min lowest valid choice
+     * @param max highest valid choice
+     * @param showChoices prints the choices before each attempt
+     * @return a valid choice
+     */
+    public int readMenuChoice(String prompt, int min, int max,
+        Runnable showChoices) {
+        while (true) {
+            showChoices.run();
+            String line = nextLine(prompt).trim();
+            try {
+                int value = Integer.parseInt(line);
+                if (value >= min && value <= max) {
+                    return value;
+                }
+            }
+            catch (NumberFormatException e) {
+                // Explain and show the choices again.
+            }
+            out.println("Enter a number from " + min + " to " + max);
+        }
+    }
+
+    /**
+     * @param prompt question to display
+     * @return importance from 1 (least) to 5 (most)
+     */
+    public int readImportance(String prompt) {
+        return readMenuChoice(prompt, Memory.MIN_IMPORTANCE,
+            Memory.MAX_IMPORTANCE);
+    }
+
+    /**
      * Reads non-blank text. Longer input is cut to maxLength with a
      * notice; the cut text is kept.
      *

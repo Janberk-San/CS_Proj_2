@@ -1,3 +1,4 @@
+import java.time.LocalDate;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -178,5 +179,43 @@ public class JournalTest {
         assertEquals(3, Journal.editDistance("", "abc"));
         assertEquals(3, Journal.editDistance("abc", ""));
         assertEquals(0, Journal.editDistance("", ""));
+    }
+    /** A merge transfers all entries, including equal-valued memories. */
+    @Test
+    public void testMergePreservesDuplicatesAndRemovesSource() {
+        Journal book = new Journal();
+        Friend source = new Friend("Alex", "old");
+        Friend target = new Friend("Alex", "new");
+        Memory memory = new Memory("lunch", MemoryType.GOOD,
+            LocalDate.of(2026, 10, 1), 5);
+        source.addMemory(memory);
+        target.addMemory(memory);
+        book.addFriend(source);
+        book.addFriend(target);
+        book.merge(source, target);
+        assertEquals(1, book.friendCount());
+        assertTrue(book.findByName("Alex")[0] == target);
+        assertEquals(2, target.memoryCount());
+    }
+
+    /** Invalid merge operands cannot partially mutate the journal. */
+    @Test
+    public void testMergeRejectsInvalidOperands() {
+        Journal book = new Journal();
+        Friend member = new Friend("Alex", null);
+        Friend outsider = new Friend("Jordan", null);
+        book.addFriend(member);
+        Friend[][] cases = {{member, member}, {null, member},
+            {member, null}, {outsider, member}, {member, outsider}};
+        for (Friend[] pair : cases) {
+            try {
+                book.merge(pair[0], pair[1]);
+                org.junit.Assert.fail("Invalid merge must fail");
+            }
+            catch (IllegalArgumentException expected) {
+                assertEquals(1, book.friendCount());
+                assertEquals(0, member.memoryCount());
+            }
+        }
     }
 }

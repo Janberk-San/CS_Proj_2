@@ -1,4 +1,5 @@
 import java.util.Arrays;
+import java.util.Locale;
 
 /**
  * One friend in the journal: a name, an optional nickname (used to tell
@@ -15,7 +16,7 @@ import java.util.Arrays;
 public class Friend {
 
     private final String name;
-    private String nickname;
+    private final String nickname;
     private final LinkedChain<Memory> memories;
 
     /**
@@ -31,7 +32,8 @@ public class Friend {
             throw new IllegalArgumentException("Name can't be blank");
         }
         this.name = collapseSpaces(name);
-        this.nickname = nickname;
+        this.nickname = nickname == null || nickname.trim().isEmpty()
+            ? null : collapseSpaces(nickname);
         this.memories = new LinkedChain<Memory>();
     }
 
@@ -44,7 +46,7 @@ public class Friend {
      * @return the normalized name; empty string for a blank name
      */
     public static String normalize(String name) {
-        return collapseSpaces(name).toLowerCase();
+        return collapseSpaces(name).toLowerCase(Locale.ROOT);
     }
 
     /**

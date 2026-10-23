@@ -1,160 +1,151 @@
-Rewind — CS 2114 Project 2 (Deliverable 3: Prototype)
-A friendship memory journal with a Cool-Down mode. For each friend you log good and bad moments; when you're upset with someone, Cool-Down shows only the good memories plus a tally (for example, 23 good vs 4 bad) so you see the whole friendship before reacting to one bad moment.
-Team: Janberk San, Vincent, Oscar
-Using Rewind
-Run RewindApp. You’ll see a menu; type a number and press Enter.
-1. Add a friend
-2. Remove a friend
-3. Log a memory
-4. View memories
-5. Cool-Down mode
-6. Delete a memory
-0. Quit
-1 – Add a friend. Type their name. A nickname is optional (just press Enter to skip). If you already have a friend with that name, Rewind asks whether this is a different person; if yes, a nickname is required so you can tell them apart.
-2 – Remove a friend. Type the name, confirm with y. This also deletes all their memories.
-3 – Log a memory. Type the friend’s name, then what happened (up to 280 characters), then g for good or b for bad, then the date as MM/DD/YYYY (for example 10/02/2026). Dates in the future aren’t allowed.
-4 – View memories. Type the friend’s name to see everything you’ve logged, newest first.
-5 – Cool-Down mode. Type the friend’s name to see only the good memories, plus a tally like 23 good vs 4 bad. Use this before reacting to one bad moment.
-6 – Delete a memory. Type the friend’s name, then the number of the memory from the list. 0 cancels.
-0 – Quit. Exits. Data is not saved between runs yet.
-How the LinkedChain is used
-One generic LinkedChain<T> class stores two element types through the same code:
-Where
-Field
-Element type
-Methods called
-Journal
-friends
-LinkedChain<Friend>
-add, remove(T), size, isEmpty, toArray(T[])
-Friend
-memories
-LinkedChain<Memory>
-add, remove(T), size, toArray(T[])
+# Rewind — CS 2114 Project 2
 
+A console friendship journal by **Janberk San, Vincent, and Oscar**.
+Log good and bad moments for each friend. Cool-Down shows the good memories
+and a good-versus-bad tally so you can consider the whole friendship.
 
-Reflection
-What changed from your specification?
-Classes and method signatures: nothing. All seven classes exist with the names in the spec.
-What we added that the spec did not list
-Named constants instead of magic numbers: Memory.MIN_IMPORTANCE/MAX_IMPORTANCE (1 and 5), Journal.CLOSE_MATCH_DISTANCE (2), and RewindApp's menu constants (ADD_FRIEND = 1 … QUIT = 0) and NAME_MAX.
+## Run
 
-Where validation lives: User mistakes are caught in InputReader and RewindApp and answered with a re-prompt; programmer mistakes are caught in Memory, Friend and LinkedChain and answered with IllegalArgumentException. 
+Build with **JDK 17 or newer** (not just a JRE). There are no runtime libraries
+or services to install. The generated application also targets Java 8 bytecode.
 
-Test cases: the plan was followed and then extended. Every row in the spec's test tables became at least one test method. On top of that we added cases the tables did not have. Total: 114 tests, all passing.
-What changed in the LinkedChain:
-Nothing. The application calls six of its public methods (add, remove(T), size, isEmpty, toArray(T[]), and remove(T) via Friend.removeMemory/Journal.removeFriend) 
-What happened to your unknowns?
-Unknown from the scope
-Status
-Generic node design
-Figured out
-Sorting an unordered bag for display
-Figured out
-equals() for our own classes
-Figured out
-Removing a specific node from a singly linked chain
-Figured out
-Testing console input
-Figured out
-File I/O (stretch)
-Still open
+### macOS / Linux
 
-What doesn't work yet?
-Data lives only while the program runs. The biggest thing we would like to add going forward is native data storage.
+```sh
+git clone https://github.com/Janberk-San/CS_Proj_2.git
+cd CS_Proj_2
+./run.sh
+```
 
-Which stretch goals will you attempt
-Save and load to a file. We don't know how we would start this in a java program quite yet but we will learn
+`run.sh` builds and launches the real `RewindApp` entry point. It uses
+`JAVA_HOME`, a local `.tools/jdk/Contents/Home` if present, or Java on `PATH`.
+The local JDK is a convenience for this checkout and is not committed.
 
-Dropping:
-Friendship trend (month-by-month bar chart). Mostly formatting work; little new data-structure logic.
-Tags and search across all friends. Would add the third element type (LinkedChain<String>), 
-"Remind me of something good" (weighted random).
-What new tests will you need?
-Work item
-Normal case
-Bad-input case
-JournalFile.save
-Round-trip: save then load gives equal memories per friend, same friend count
-Description containing |, quotes and a newline survives the round-trip unchanged
-JournalFile.load
-Load a hand-written valid file → friends and memories present
-Missing file → empty journal, no exception; a line with 3 fields instead of 6, a bad date, importance 9 → each skipped and counted, rest loaded; empty file → empty journal
+The default journal is `rewind.journal` in the project folder. To choose another:
 
+```sh
+./run.sh /absolute/path/to/my.journal
+```
 
-Who does what?
-Item
-Owner
-Delete Main.java; re-show list on bad delete number; both RewindAppTest cases
-Janberk
-Checkstyle pass on InputReader, RewindApp, their tests, and this README
-Janberk
-Undo stack in RewindApp + RewindAppTest undo cases
-Janberk
-Journal.merge + JournalTest merge cases; merge menu flow with Janberk
-Oscar
-JournalFile save/load + JournalFileTest (all escaping and bad-file cases)
-Oscar
-Checkstyle pass on LinkedChain, Journal, their tests
-Oscar
-Importance prompt: InputReader.readImportance (Janberk) and wiring into logMemory; Memory already validates 1–5
-Vincent + Janberk
-Checkstyle pass on MemoryType, Memory, Friend, their tests
-Vincent
-Integration run of all tests at lab; final README update
-all three
+Relative paths passed to `run.sh` are relative to the project folder. The parent
+directory must already exist. `./run.sh --help` prints usage.
 
+### Maven / Windows
 
+With JDK 17+ and Maven installed, run these commands from the project folder:
 
-Attribution
-One row per class and test file. Every file was built from the pseudocode in our Deliverable 2 spec, in the spec's dependency order.
-File
-Who
-How
-LinkedChain.java
-Oscar (owner); course-provided
-Provided class. Oscar verified its API against the spec's signature table and confirmed no modifications were needed.
-LinkedChainTest.java
-Oscar
-Written from the spec's LinkedChainTest table, plus a generic-reuse test.
-MemoryType.java
-Vincent
-Enum with fromInput, written from the spec's pseudocode.
-MemoryTypeTest.java
-Vincent
-Written from the spec's MemoryTypeTest rows.
-Memory.java
-Vincent
-Immutable value class; equals/hashCode/NEWEST_FIRST per the generic contract.
-MemoryTest.java
-Vincent
-Written from the spec's MemoryTest table; added importance-edge and comparator tests.
-Friend.java
-Vincent
-Domain class holding LinkedChain<Memory>; normalize and sorted views.
-FriendTest.java
-Vincent
-Written from the spec's FriendTest table; added copy-independence and identity tests.
-Journal.java
-Oscar
-Domain class holding LinkedChain<Friend>; name matching and Levenshtein editDistance.
-JournalTest.java
-Oscar
-Written from the spec's JournalTest table; added nickname sort order test.
-InputReader.java
-Janberk
-Injected-dependency I/O helper; strict date parsing; InputClosedException.
-InputReaderTest.java
-Janberk
-Written from the spec's InputReaderTest table with scripted Scanners and a fixed today.
-RewindApp.java
-Janberk
-Entry point, menu loop, chooseFriend and one handler per menu item.
-RewindAppTest.java
-Janberk
-Integration tests from the spec's RewindAppTest table, plus one scripted session per bad-input case in the scope.
-README.md
-Janberk (draft), all three (review)
-Reflection, next steps and this table.
+```sh
+mvn verify
+java -jar target/rewind-1.0.0.jar
+```
 
-How we used GenAI: As in Deliverable 2, we used GenAI (Claude) as a drafting partner. For this deliverable it helped turn the spec's method tables into class pseudocode as well as draft the JUnit tests from the spec's test tables. 
+You can also run `./build.sh`, then `java -jar build/rewind.jar` on macOS/Linux.
+When running the JAR directly, the default file is in the current working directory.
+
+### Eclipse
+
+Import this folder as an existing Java project and run `RewindApp` as a Java
+Application. The `.classpath` includes the JUnit 4 container for tests. Select an
+installed JDK in Eclipse's Java settings. The old hello-world `Main` was removed.
+
+## Using the journal
+
+| Choice | Action |
+| --- | --- |
+| 1 | Add a friend, with an optional nickname. Same-name friends require a distinct nickname. |
+| 2 | Remove a friend and their memories after confirmation. |
+| 3 | Log a memory: description, good/bad, date, then importance from 1 to 5. |
+| 4 | View all memories for a friend, newest first. |
+| 5 | Cool-Down: show good memories only, followed by the good/bad counts. |
+| 6 | Delete a numbered memory. Invalid input shows the list again; 0 cancels. |
+| 7 | Undo the last completed change. Repeat to undo earlier changes from this session. |
+| 8 | Merge two friend records: choose the source to remove, then the destination to keep, and confirm. |
+| 0 | Quit. |
+
+Names match regardless of capitalization or extra spaces. When multiple friends
+share a name, choose the appropriate nickname from the numbered list; 0 cancels.
+Misspelled names receive close-match suggestions. Dates use `MM/DD/YYYY`, must
+exist on the calendar, and cannot be in the future. Descriptions are limited to
+280 characters. Empty/invalid answers are explained and re-prompted.
+
+A merge moves every memory into the destination, including equal-valued entries;
+it does not guess whether two identical descriptions represent the same event.
+Undo restores the original two records. Undo also supports adding/removing
+friends and logging/deleting memories. Reads, invalid input, and cancelled actions
+do not add undo entries. Undo history ends when the program exits.
+
+## Storage and recovery
+
+- The journal loads on startup and saves after every completed change, including undo.
+- Quit and end-of-input retry any pending save. Incomplete prompts do not create partial entries.
+- A new/missing or empty file starts an empty journal. Other read errors stop startup.
+- Saves write a complete temporary file before replacing the destination, atomically
+  where supported. A save error displays **NOT SAVED**, keeps changes in memory,
+  and lets you retry by fixing the destination and choosing Quit again. Exiting
+  with unsaved data returns a nonzero status.
+- Malformed records are skipped and counted. Before the recovered journal can be
+  saved, startup creates a uniquely named `.recovery-*.bak` copy of the original.
+  An unknown file header/version stops startup without overwriting the file.
+- A `.lock` file prevents two Rewind sessions from editing the same journal at
+  once. It can remain after exit; the operating-system lock is released on exit.
+  Do not delete the lock file while Rewind is running.
+- Journal data, backups, compiled classes, and downloaded tools are gitignored.
+  Data is ordinary local UTF-8 text, not encrypted. Use a `.journal` extension for
+  custom files so the default ignore rules cover them.
+
+See [the file format](docs/file-format.md) for hand-written examples and recovery.
+
+## Tests and checks
+
+```sh
+./test.sh       # compile with warnings as errors, then run all JUnit tests
+mvn verify      # tests, executable JAR, and repository Checkstyle checks
+```
+
+`test.sh` downloads pinned JUnit 4.13.2 and Hamcrest 1.3 JARs on its first run
+and verifies their SHA-256 checksums. Later runs work offline. The application
+itself needs no downloads once a JDK is installed.
+
+The suite contains **129 tests**, including the existing domain/input tests and
+new coverage for persistence, real startup/restart, save failures and retries,
+recovery backups, locks, merge/undo, nickname collisions, importance, and
+LinkedChain behavior. All tests use temporary files or in-memory journals;
+they do not touch your normal journal. GitHub Actions runs `mvn verify` on
+Java 17 and 21 for pushes and pull requests.
+
+`config/checkstyle.xml` is a repository baseline. No instructor-specific
+Checkstyle configuration or Deliverable 2 specification was included in this
+repository, so course-specific grading requirements must be checked separately.
+
+## Completion and data structures
+
+The prototype's documented remaining work is implemented: native file storage,
+undo, merge, importance input, delete retries, a working entry point, tests, and
+updated usage instructions. The prototype reported 114 passing tests, but the
+checkout contained 91 and no `LinkedChainTest`; the missing chain suite is now
+included. The intentionally dropped stretch ideas (charts, tags/search, and
+weighted random reminders) remain outside this project's documented scope.
+
+The original generic `LinkedChain<T>` implementation is unchanged. It stores
+`Friend` entries in `Journal`, `Memory` entries in each `Friend`, and inverse
+`Runnable` actions in the undo stack. `add`/`remove()` provide stack push/pop.
+Sorting uses defensive array copies. `JournalFile` uses file-local IDs to keep
+same-name friends distinct and standard parsing collections for file records.
+
+## Attribution and AI assistance
+
+Original responsibilities recorded by the team:
+
+| Source / tests | Original author or owner |
+| --- | --- |
+| `LinkedChain` | Oscar; described in the prototype as course-provided |
+| `MemoryType`, `Memory`, `Friend` and their tests | Vincent |
+| `Journal` and tests | Oscar |
+| `InputReader`, `RewindApp` and their tests | Janberk |
+| Original README | Janberk draft, team review |
+
+The prototype documents Claude assistance with pseudocode and test drafting.
+This completion pass used Codex to implement the documented remaining features,
+extend and run tests, add build/CI tooling, and update documentation. The additions
+include `JournalFile`, `JournalFileTest`, `RewindPersistenceTest`, and the missing
+`LinkedChainTest`, plus changes to the existing classes and tests.

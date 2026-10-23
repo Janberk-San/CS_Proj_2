@@ -1,10 +1,22 @@
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
+import java.nio.channels.OverlappingFileLockException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
 import java.io.PrintStream;
 import java.time.LocalDate;
 import java.util.Scanner;
 
 /**
  * Entry point for Rewind. Runs the text menu and turns each choice into
- * calls on Journal and Friend. Holds no data of its own.
+ * calls on Journal and Friend. Keeps a session-only stack of undo actions.
  *
  * Everything is injected through the constructor so RewindAppTest can
  * drive the whole app with a scripted Scanner and capture its output.
@@ -29,25 +41,92 @@ public class RewindApp {
     /** Menu option: delete a memory. */
     private static final int DELETE_MEMORY = 6;
 
+    /** Menu option: undo the most recent change. */
+    private static final int UNDO = 7;
+    /** Menu option: merge two friend records. */
+    private static final int MERGE = 8;
+
+    private final LinkedChain<Runnable> undoStack = new LinkedChain<>();
+
     /** Longest name or nickname accepted. */
     private static final int NAME_MAX = 280;
 
     private final Journal journal;
     private final InputReader input;
     private final PrintStream out;
+    private final Path dataFile;
+    private boolean dirty;
 
     /**
-     * Builds the app on the real keyboard, screen and clock, then runs it.
-     *
-     * @param args unused
+     * Launches the persistent journal and reports failures to the shell.
+     * @param args optional journal file path, or --help
      */
     public static void main(String[] args) {
-        Scanner keyboard = new Scanner(System.in);
-        InputReader reader =
-            new InputReader(keyboard, System.out, LocalDate.now());
-        RewindApp app = new RewindApp(new Journal(), reader, System.out);
-        app.run();
-        keyboard.close();
+        int status = start(args, System.in, System.out);
+        if (status != 0) {
+            System.exit(status);
+        }
+    }
+
+    /**
+     * Owns a persistent console session, including the exclusive file lock.
+     * @param args optional journal path, or --help
+     * @param in keyboard or other input stream
+     * @param out messages and prompts
+     * @return zero on success, one on load/lock/save failure or invalid arguments
+     */
+    public static int start(String[] args, InputStream in, PrintStream out) {
+        if (args.length == 1 && args[0].equals("--help")) {
+            out.println("Usage: java RewindApp [journal-file]");
+            out.println("Default: rewind.journal in the current directory.");
+            return 0;
+        }
+        if (args.length > 1) {
+            out.println("Usage: java RewindApp [journal-file]");
+            return 1;
+        }
+        try {
+            Path path = Paths.get(args.length == 0 ? "rewind.journal" : args[0])
+                .toAbsolutePath().normalize();
+            // Resolve existing symlinks before choosing the lock and save paths.
+            if (Files.exists(path)) {
+                path = path.toRealPath();
+            }
+            else {
+                path = path.getParent().toRealPath().resolve(path.getFileName());
+            }
+            Path lockPath = path.resolveSibling(path.getFileName() + ".lock");
+            try (FileChannel channel = FileChannel.open(lockPath,
+                StandardOpenOption.CREATE, StandardOpenOption.WRITE);
+                FileLock lock = channel.tryLock()) {
+                if (lock == null) {
+                    out.println("This journal is already open in another Rewind session.");
+                    return 1;
+                }
+                JournalFile.LoadResult loaded = JournalFile.load(path);
+                if (loaded.getSkippedLines() > 0) {
+                    Path backup = Files.createTempFile(path.getParent(),
+                        path.getFileName() + ".recovery-", ".bak");
+                    Files.copy(path, backup, StandardCopyOption.REPLACE_EXISTING);
+                    out.println("Skipped " + loaded.getSkippedLines()
+                        + " invalid record(s). Original backed up to " + backup);
+                }
+                out.println("Journal file: " + path);
+                Scanner keyboard = new Scanner(in, StandardCharsets.UTF_8.name());
+                InputReader reader = new InputReader(keyboard, out, LocalDate.now());
+                RewindApp app = new RewindApp(loaded.getJournal(), reader, out, path);
+                app.run();
+                return app.dirty ? 1 : 0;
+            }
+        }
+        catch (OverlappingFileLockException e) {
+            out.println("This journal is already open in another Rewind session.");
+            return 1;
+        }
+        catch (IOException | InvalidPathException e) {
+            out.println("Could not open journal: " + e.getMessage());
+            return 1;
+        }
     }
 
     /**
@@ -58,9 +137,22 @@ public class RewindApp {
      * @param out where menus, lists and messages are printed
      */
     public RewindApp(Journal journal, InputReader input, PrintStream out) {
+        this(journal, input, out, null);
+    }
+
+    /**
+     * Creates a session with autosave after every completed change.
+     * @param journal loaded data
+     * @param input validated input
+     * @param out output stream
+     * @param dataFile destination, or null for an in-memory session
+     */
+    public RewindApp(Journal journal, InputReader input, PrintStream out,
+        Path dataFile) {
         this.journal = journal;
         this.input = input;
         this.out = out;
+        this.dataFile = dataFile;
     }
 
     /**
@@ -71,7 +163,7 @@ public class RewindApp {
         try {
             while (true) {
                 printMenu();
-                int choice = input.readMenuChoice("> ", QUIT, DELETE_MEMORY);
+                int choice = input.readMenuChoice("> ", QUIT, MERGE);
                 switch (choice) {
                     case ADD_FRIEND:
                         addFriend();
@@ -91,13 +183,24 @@ public class RewindApp {
                     case DELETE_MEMORY:
                         deleteMemory();
                         break;
+                    case UNDO:
+                        undo();
+                        break;
+                    case MERGE:
+                        mergeFriends();
+                        break;
                     default:
+                        if (!saveChanges() && !input.readYesNo(
+                            "Exit without saving? (y/n) ")) {
+                            break;
+                        }
                         out.println("Goodbye");
                         return;
                 }
             }
         }
         catch (InputReader.InputClosedException e) {
+            saveChanges();
             out.println();
             out.println("Goodbye");
         }
@@ -114,6 +217,8 @@ public class RewindApp {
         out.println("4. View memories");
         out.println("5. Cool-Down mode");
         out.println("6. Delete a memory");
+        out.println("7. Undo last change");
+        out.println("8. Merge friends");
         out.println("0. Quit");
     }
 
@@ -193,9 +298,25 @@ public class RewindApp {
                 "Nickname (optional): ", NAME_MAX);
         }
 
+        while (nickname != null && nicknameExists(name, nickname)) {
+            out.println("That nickname is already used for this name.");
+            nickname = input.readText("Choose a different nickname: ", NAME_MAX);
+        }
         Friend friend = new Friend(name, nickname);
         journal.addFriend(friend);
+        recordChange(() -> journal.removeFriend(friend));
         out.println("Added " + friend.displayName());
+    }
+
+    /** Checks labels using the same case and spacing rules as names. */
+    private boolean nicknameExists(String name, String nickname) {
+        for (Friend friend : journal.findByName(name)) {
+            if (friend.getNickname() != null
+                && Friend.normalize(friend.getNickname()).equals(Friend.normalize(nickname))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -209,6 +330,7 @@ public class RewindApp {
         if (input.readYesNo("Remove " + f.displayName()
             + " and all memories? (y/n) ")) {
             journal.removeFriend(f);
+            recordChange(() -> journal.addFriend(f));
             out.println("Removed " + f.displayName());
         }
     }
@@ -224,7 +346,10 @@ public class RewindApp {
         String desc = input.readText("What happened? ", Memory.MAX_LENGTH);
         MemoryType type = input.readMemoryType("Good or bad? (g/b) ");
         LocalDate date = input.readDate("Date (MM/DD/YYYY): ");
-        f.addMemory(new Memory(desc, type, date, Memory.DEFAULT_IMPORTANCE));
+        int importance = input.readImportance("Importance (1-5): ");
+        Memory memory = new Memory(desc, type, date, importance);
+        f.addMemory(memory);
+        recordChange(() -> f.removeMemory(memory));
         out.println("Logged");
     }
 
@@ -274,14 +399,88 @@ public class RewindApp {
             return;
         }
         Memory[] list = f.getMemoriesNewestFirst();
-        printNumbered(list);
         int pick = input.readMenuChoice(
-            "Delete which? (0 cancels) ", 0, list.length);
+            "Delete which? (0 cancels) ", 0, list.length,
+            () -> printNumbered(list));
         if (pick == 0) {
             return;
         }
-        f.removeMemory(list[pick - 1]);
+        Memory removed = list[pick - 1];
+        f.removeMemory(removed);
+        recordChange(() -> f.addMemory(removed));
         out.println("Deleted");
+    }
+
+    /** Combines two chosen friend records after confirmation. */
+    private void mergeFriends() {
+        if (journal.friendCount() < 2) {
+            out.println("Add at least two friends before merging");
+            return;
+        }
+        out.println("Choose the source record to remove:");
+        Friend source = chooseFriend();
+        if (source == null) {
+            return;
+        }
+        out.println("Choose the destination record to keep:");
+        Friend target = chooseFriend();
+        if (target == null) {
+            return;
+        }
+        if (source == target) {
+            out.println("Choose two different friends");
+            return;
+        }
+        if (!input.readYesNo("Merge " + source.displayName() + " into "
+            + target.displayName() + "? (y/n) ")) {
+            return;
+        }
+        Memory[] transferred = source.getMemoriesNewestFirst();
+        journal.merge(source, target);
+        recordChange(() -> {
+            for (Memory memory : transferred) {
+                target.removeMemory(memory);
+            }
+            journal.addFriend(source);
+        });
+        out.println("Merged into " + target.displayName());
+    }
+
+    /** Records an inverse action and immediately persists the completed change. */
+    private void recordChange(Runnable inverse) {
+        undoStack.add(inverse);
+        dirty = dataFile != null;
+        saveChanges();
+    }
+
+    /** Retries pending writes; failures keep the data in memory for another try. */
+    private boolean saveChanges() {
+        if (!dirty) {
+            return true;
+        }
+        try {
+            JournalFile.save(journal, dataFile);
+            dirty = false;
+            return true;
+        }
+        catch (IOException e) {
+            out.println("NOT SAVED: " + e.getMessage());
+            out.println("Changes remain in memory. Fix the file problem and quit to retry.");
+            return false;
+        }
+    }
+
+    /** Reverses the latest completed change; reads and cancellations do not count. */
+    private void undo() {
+        Runnable action = undoStack.remove();
+        if (action == null) {
+            out.println("Nothing to undo");
+            return;
+        }
+        action.run();
+        dirty = dataFile != null;
+        saveChanges();
+        out.println("Undone");
     }
 
     /**
@@ -291,7 +490,8 @@ public class RewindApp {
      */
     private void printNumbered(Memory[] items) {
         for (int i = 0; i < items.length; i++) {
-            out.println((i + 1) + ". " + items[i]);
+            out.println((i + 1) + ". " + items[i]
+                + " [importance " + items[i].getImportance() + "/5]");
         }
     }
 }

@@ -239,4 +239,24 @@ public class FriendTest {
         assertTrue(alex.equals(alex));
         assertNull(alex.getNickname());
     }
+    /** Name matching is independent of the computer's language settings. */
+    @Test
+    public void testNormalizationIsLocaleIndependent() {
+        java.util.Locale previous = java.util.Locale.getDefault();
+        try {
+            java.util.Locale.setDefault(new java.util.Locale("tr", "TR"));
+            assertEquals("ian", Friend.normalize("IAN"));
+        }
+        finally {
+            java.util.Locale.setDefault(previous);
+        }
+    }
+
+    /** Whitespace-only nicknames behave like an omitted nickname. */
+    @Test
+    public void testBlankNicknameIsAbsent() {
+        Friend friend = new Friend("Alex", "   ");
+        assertEquals("Alex", friend.displayName());
+        assertNull(friend.getNickname());
+    }
 }

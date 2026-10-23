@@ -1,1 +1,10 @@
 /bin/
+/build/
+/target/
+/.tools/
+*.class
+*.journal
+*.journal.lock
+*.recovery-*.bak
+.rewind-*.tmp
+.DS_Store
