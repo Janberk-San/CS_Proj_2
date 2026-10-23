@@ -8,7 +8,7 @@ sources=()
 for source in src/*.java; do
     [[ "$source" == *Test.java ]] || sources+=("$source")
 done
-"$REWIND_JAVAC" --release 8 -encoding UTF-8 -Xlint:all -Werror \
+"$REWIND_JAVAC" --release 8 -encoding UTF-8 -Xlint:all,-options -Werror \
     -d build/classes "${sources[@]}"
 "$REWIND_JAR" cfe build/rewind.jar RewindApp -C build/classes .
 echo 'Built build/rewind.jar'

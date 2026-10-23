@@ -29,7 +29,7 @@ fetch .tools/hamcrest-core-1.3.jar \
     https://repo.maven.apache.org/maven2/org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.jar \
     66fdef91e9739348df7a096aa384a5685f4e875584cce89386a7a47251c4d8e9
 classpath='build/classes:.tools/junit-4.13.2.jar:.tools/hamcrest-core-1.3.jar'
-"$REWIND_JAVAC" --release 8 -encoding UTF-8 -Xlint:all -Werror \
+"$REWIND_JAVAC" --release 8 -encoding UTF-8 -Xlint:all,-options -Werror \
     -cp "$classpath" -d build/test-classes src/*Test.java
 tests=()
 for source in src/*Test.java; do
